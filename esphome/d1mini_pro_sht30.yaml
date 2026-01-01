@@ -11,6 +11,7 @@ api:
     key: "ocIeqzPedhq7zxZROYlZQR2E5xoE7cPS3K/bez7MKRE="
 
 ota:
+- platform: esphome
   password: "48e769c035da8c6d48dcf6fe805b044a"
 
 wifi:
@@ -35,13 +36,14 @@ sensor:
     temperature:
       name: "SHT30 Temperatura"
       id: sht_temp
+      filters:
+        - offset: -6   # zmień -1.5 na wartość korekcyjną (np. -2.0, +0.8 itp.)
     humidity:
       name: "SHT30 Wilgotność"
       id: sht_hum
     address: 0x45     # jeśli nie wykrywa, zmień na 0x44
     update_interval: 10s
-
-# --- Skrypt soft-reset i przycisk udostępniony w HA ---
+# --- Reset soft SHT30 ---
 script:
   - id: sht3_soft_reset
     then:
