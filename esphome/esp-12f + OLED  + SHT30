@@ -1,0 +1,76 @@
+esphome:
+  name: esp12f-plyta-testowa
+  friendly_name: ESP12F-plyta testowa
+
+esp8266:
+  board: esp12e
+
+logger:
+
+api:
+  encryption:
+    key: "xbPEAsJhav0y0cQIIufRy0W6dxU/ksyPi8/7feqGHVo="
+
+ota:
+  - platform: esphome
+    password: "71d37c9ba16e365438c3237b4978698e"
+
+wifi:
+  ssid: "Woox.2.4"
+  password: "00512623706"
+  min_auth_mode: WPA2
+
+captive_portal:
+
+font:
+  - file: "fonts/Roboto_Condensed-Bold.ttf"
+    id: font_big
+    size: 22   # duża czcionka - dostosuj jeśli trzeba (36, 48)
+  - file: "fonts/Roboto_Condensed-Bold.ttf"
+    id: font_small
+    size: 22   # mniejsza czcionka na wilgotność / dodatkowe informacje
+
+i2c:
+  id: bus_i2c
+  sda: 4
+  scl: 5
+  frequency: 100000
+  scan: true
+
+sensor:
+  - platform: sht3xd
+    i2c_id: bus_i2c
+    id: sht3x_sensor
+    temperature:
+      name: "SHT30 Temperatura"
+      id: sht_temp
+    humidity:
+      name: "SHT30 Wilgotność"
+      id: sht_hum
+    address: 0x45
+    update_interval: 10s
+
+display:
+  - platform: ssd1306_i2c
+    id: oled_display
+    i2c_id: bus_i2c
+    address: 0x3C
+    model: "SH1106 128x64"
+    # Jeśli tekst jest obrócony pionowo, spróbuj ustawić rotation: 90 lub rotation: 270
+    rotation: 0
+    update_interval: 1s
+    lambda: |-
+      it.clear();
+      // główny numer temperatury - duża czcionka
+      if (!isnan(id(sht_temp).state)) {
+        // x=0 - zaczynamy od lewej; y ustawione tak, aby tekst baseline był w dolnej części ekranu
+        it.printf(0, 0, id(font_big), "Temp: %.1f °C", id(sht_temp).state);
+      } else {
+        it.print(0, 44, id(font_big), "Temp: --.- C");
+      }
+      // mniejsza linia z wilgotnością - poniżej
+      if (!isnan(id(sht_hum).state)) {
+        it.printf(0, 33, id(font_small), "Wilg: %.1f %%", id(sht_hum).state);
+      } else {
+        it.print(0, 62, id(font_small), "Wilg: --.- %%");
+      }
