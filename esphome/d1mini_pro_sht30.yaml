@@ -1,0 +1,71 @@
+esphome:
+  name: d1mini-pro-plyta-3
+
+esp8266:
+  board: d1_mini
+
+logger:
+
+api:
+  encryption:
+    key: "ocIeqzPedhq7zxZROYlZQR2E5xoE7cPS3K/bez7MKRE="
+
+ota:
+  password: "48e769c035da8c6d48dcf6fe805b044a"
+
+wifi:
+  ssid: "Woox.2.4"
+  password: "00512623706"
+  min_auth_mode: WPA2
+
+captive_portal:
+
+# I2C dla SHT30 (D1 = SCL, D2 = SDA)
+i2c:
+  id: bus_i2c
+  sda: D2        # GPIO4
+  scl: D1        # GPIO5
+  frequency: 100000
+  scan: true
+
+sensor:
+  - platform: sht3xd
+    i2c_id: bus_i2c
+    id: sht3x_sensor
+    temperature:
+      name: "SHT30 Temperatura"
+      id: sht_temp
+    humidity:
+      name: "SHT30 Wilgotność"
+      id: sht_hum
+    address: 0x45     # jeśli nie wykrywa, zmień na 0x44
+    update_interval: 10s
+
+# --- Skrypt soft-reset i przycisk udostępniony w HA ---
+script:
+  - id: sht3_soft_reset
+    then:
+      - logger.log: "SHT3x: sending soft reset..."
+      - lambda: |-
+          // Soft reset (0x30, 0xA2)
+          Wire.beginTransmission(0x45);
+          Wire.write(0x30);
+          Wire.write(0xA2);
+          Wire.endTransmission();
+      - delay: 200ms
+      - lambda: |-
+          // Clear status (0x30, 0x41)
+          Wire.beginTransmission(0x45);
+          Wire.write(0x30);
+          Wire.write(0x41);
+          Wire.endTransmission();
+      - delay: 200ms
+      - logger.log: "SHT3x: soft reset + clear status sent"
+
+button:
+  - platform: template
+    name: "Resetuj SHT30"
+    id: resetuj_sht30
+    on_press:
+      then:
+        - script.execute: sht3_soft_reset
