@@ -1,0 +1,113 @@
+esphome:
+  name: esp12f-plyta-testowa
+  friendly_name: ESP12F-plyta testowa
+
+esp8266:
+  board: esp12e
+
+logger:
+
+api:
+  encryption:
+    key: "xbPEAsJhav0y0cQIIufRy0W6dxU/ksyPi8/7feqGHVo="
+
+ota:
+  - platform: esphome
+    password: "71d37c9ba16e365438c3237b4978698e"
+
+wifi:
+  ssid: "Woox.2.4"
+  password: "00512623706"
+  min_auth_mode: WPA2
+
+captive_portal:
+
+# globalna zmienna do przełączania wyświetlanych czujników
+globals:
+  - id: display_toggle
+    type: int
+    initial_value: '0'  # 0 -> pokaż SHT30, 1 -> pokaż DHT22
+
+# co 2 sekundy przełączaj wartość display_toggle
+interval:
+  - interval: 2s
+    then:
+      - lambda: |-
+          id(display_toggle) = 1 - id(display_toggle);
+
+font:
+  - file: "fonts/Roboto_Condensed-Bold.ttf"
+    id: font_big
+    size: 22   # zachowujemy oryginalną czcionkę/rozmiar
+  - file: "fonts/Roboto_Condensed-Bold.ttf"
+    id: font_small
+    size: 22   # zachowujemy oryginalną czcionkę/rozmiar
+
+i2c:
+  id: bus_i2c
+  sda: 4
+  scl: 5
+  frequency: 100000
+  scan: true
+
+sensor:
+  - platform: sht3xd
+    i2c_id: bus_i2c
+    id: sht3x_sensor
+    temperature:
+      name: "SHT30 Temperatura"
+      id: sht_temp
+    humidity:
+      name: "SHT30 Wilgotność"
+      id: sht_hum
+    address: 0x45
+    update_interval: 10s
+
+  - platform: dht
+    pin: GPIO12        # PIO12 / D6
+    model: DHT22
+    temperature:
+      name: "DHT22 Temperatura"
+      id: dht_temp
+    humidity:
+      name: "DHT22 Wilgotność"
+      id: dht_hum
+    update_interval: 60s
+
+display:
+  - platform: ssd1306_i2c
+    id: oled_display
+    i2c_id: bus_i2c
+    address: 0x3C
+    model: "SH1106 128x64"
+    rotation: 0
+    update_interval: 1s
+    lambda: |-
+      it.clear();
+      // display_toggle == 0: pokazujemy SHT30 na całym ekranie
+      // display_toggle == 1: pokazujemy DHT22 na całym ekranie
+      if (id(display_toggle) == 0) {
+        // SHT30 - używamy tych samych czcionek i układu co wcześniej
+        if (!isnan(id(sht_temp).state)) {
+          it.printf(0, 0, id(font_big), "Temp: %.1f C", id(sht_temp).state);
+        } else {
+          it.print(0, 0, id(font_big), "Temp: --.- C");
+        }
+        if (!isnan(id(sht_hum).state)) {
+          it.printf(0, 33, id(font_small), "Wilg: %.1f %%", id(sht_hum).state);
+        } else {
+          it.print(0, 33, id(font_small), "Wilg: --.- %%");
+        }
+      } else {
+        // DHT22 - cała strona dla DHT (te same pozycje i czcionki)
+        if (!isnan(id(dht_temp).state)) {
+          it.printf(0, 0, id(font_big), "Temp: %.1f C", id(dht_temp).state);
+        } else {
+          it.print(0, 0, id(font_big), "Temp: --.- C");
+        }
+        if (!isnan(id(dht_hum).state)) {
+          it.printf(0, 33, id(font_small), "Wilg: %.1f %%", id(dht_hum).state);
+        } else {
+          it.print(0, 33, id(font_small), "Wilg: --.- %%");
+        }
+      }
